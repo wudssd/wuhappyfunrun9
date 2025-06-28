@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WU Happy Funrun - บันทึกการเข้าร่วม</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SweetAlert2 for notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Google Fonts: Kanit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #FFF8E1; /* Light Yellow */
+        }
+        .theme-bg-pink {
+            background-color: #FFECF4; /* Light Pink */
+        }
+        .theme-btn {
+            background-color: #FFC107; /* Yellow */
+            color: #424242;
+            transition: all 0.3s ease;
+        }
+        .theme-btn:hover {
+            background-color: #FFA000;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .theme-btn:disabled {
+            background-color: #E0E0E0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .card {
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .form-input {
+            border-color: #E0E0E0;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .form-input:focus {
+            border-color: #FFC107;
+            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.3);
+            outline: none;
+        }
+        #map-status {
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 500;
+            text-align: center;
+        }
+        .status-checking {
+            background-color: #FFF3CD;
+            color: #856404;
+        }
+        .status-in-area {
+            background-color: #D4EDDA;
+            color: #155724;
+        }
+        .status-out-area {
+            background-color: #F8D7DA;
+            color: #721C24;
+        }
+        #preview {
+            max-width: 100%;
+            max-height: 250px;
+            border-radius: 8px;
+            border: 2px dashed #E0E0E0;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="card w-full max-w-lg">
+        <!-- Header -->
+        <div class="theme-bg-pink p-4 flex flex-col items-center justify-center text-center">
+            <img src="https://www.wu.ac.th/uploads/logoWU_1631668089.png" alt="WU Logo" class="h-16 mb-2">
+            <h1 class="text-2xl font-bold text-gray-800">WU Happy Funrun</h1>
+            <p class="text-gray-600">ระบบบันทึกการเข้าร่วมกิจกรรม</p>
+        </div>
+
+        <!-- Form -->
+        <form id="funrunForm" class="p-6 space-y-5">
+            
+            <!-- Geolocation Status -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">สถานะพิกัด</label>
+                <div id="map-status" class="status-checking">กำลังตรวจสอบพิกัด...</div>
+            </div>
+
+            <!-- Student ID -->
+            <div>
+                <label for="studentId" class="block text-sm font-medium text-gray-700">รหัสนักศึกษา (8 หลัก)</label>
+                <input type="number" id="studentId" name="studentId" required class="mt-1 block w-full px-3 py-2 border form-input rounded-md" placeholder="กรอกรหัสนักศึกษา 8 หลัก">
+            </div>
+
+            <!-- Full Name -->
+            <div>
+                <label for="fullName" class="block text-sm font-medium text-gray-700">ชื่อ-สกุล</label>
+                <input type="text" id="fullName" name="fullName" required class="mt-1 block w-full px-3 py-2 border form-input rounded-md" placeholder="กรอกชื่อและนามสกุล">
+            </div>
+
+            <!-- Faculty -->
+            <div>
+                <label for="faculty" class="block text-sm font-medium text-gray-700">สำนักวิชา</label>
+                <select id="faculty" name="faculty" required class="mt-1 block w-full px-3 py-2 border form-input rounded-md">
+                    <option value="" disabled selected>-- กรุณาเลือกสำนักวิชา --</option>
+                    <option>การจัดการ</option>
+                    <option>การบัญชีและการเงิน</option>
+                    <option>เทคโนโลยีการเกษตรและอุตสาหกรรมอาหาร</option>
+                    <option>นิติศาสตร์</option>
+                    <option>พยาบาลศาสตร์</option>
+                    <option>แพทยศาสตร์</option>
+                    <option>เภสัชศาสตร์</option>
+                    <option>รัฐศาสตร์และรัฐประศาสนศาสตร์</option>
+                    <option>วิทยาศาสตร์</option>
+                    <option>วิศวกรรมศาสตร์และเทคโนโลยี</option>
+                    <option>ศึกษาศาสตร์</option>
+                    <option>ศิลปศาสตร์</option>
+                    <option>สถาปัตยกรรมศาสตร์และการออกแบบ</option>
+                    <option>สหเวชศาสตร์</option>
+                    <option>สาธารณสุขศาสตร์</option>
+                    <option>สารสนเทศศาสตร์</option>
+                    <option>วิทยาลัยทันตแพทยศาสตร์นานาชาติ</option>
+                    <option>วิทยาลัยนานาชาติ</option>
+                    <option>วิทยาลัยสัตวแพทยศาสตร์อัครราชกุมารี</option>
+                </select>
+            </div>
+
+            <!-- Photo Upload -->
+            <div>
+                <label for="photo" class="block text-sm font-medium text-gray-700">ถ่ายภาพเพื่อยืนยัน</label>
+                <p class="text-xs text-gray-500 mb-2">ระบบจะเปิดกล้องเพื่อถ่ายภาพใหม่เท่านั้น</p>
+                <input type="file" id="photo" name="photo" accept="image/*" capture="camera" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-100 file:text-yellow-700 hover:file:bg-yellow-200">
+                <div class="mt-4 flex justify-center">
+                    <img id="preview" src="https://placehold.co/400x250/FFF8E1/9E9E9E?text=แสดงตัวอย่างภาพ" alt="ตัวอย่างภาพ">
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="submitBtn" class="w-full theme-btn font-bold py-3 px-4 rounded-lg" disabled>
+                ส่งข้อมูล
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        // URL ของ Google Apps Script ที่ได้จากการ Deploy
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRwj2zuncF6Jp3y3Enmsgh4rBIFpBeasoXhQGaJTqTYaVCJ9GbxtDQ5cJ9_muBx97c/exec";
+        
+        // --- พิกัดและระยะทางที่อนุญาต (Admin สามารถแก้ไขตรงนี้ได้) ---
+        // ตัวอย่าง: พิกัดอาคารเรียนรวม 1 ม.วลัยลักษณ์
+        const TARGET_LAT = 8.6465; 
+        const TARGET_LON = 99.8961; 
+        const ALLOWED_RADIUS_KM = 1.0; // ระยะที่อนุญาตในหน่วยกิโลเมตร
+
+        // --- DOM Elements ---
+        const form = document.getElementById('funrunForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const mapStatusDiv = document.getElementById('map-status');
+        const studentIdInput = document.getElementById('studentId');
+        const photoInput = document.getElementById('photo');
+        const previewImg = document.getElementById('preview');
+
+        let userLocation = null;
+        let isUserInArea = false;
+        let base64Image = null;
+
+        // --- Geolocation Function ---
+        function checkLocation() {
+            if (!navigator.geolocation) {
+                mapStatusDiv.textContent = "เบราว์เซอร์ของคุณไม่รองรับ Geolocation";
+                mapStatusDiv.className = 'status-out-area';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    userLocation = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude
+                    };
+                    const distance = calculateDistance(userLocation.lat, userLocation.lon, TARGET_LAT, TARGET_LON);
+                    
+                    if (distance <= ALLOWED_RADIUS_KM) {
+                        isUserInArea = true;
+                        mapStatusDiv.textContent = `คุณอยู่ในพื้นที่กิจกรรม (ระยะห่าง ${distance.toFixed(2)} km)`;
+                        mapStatusDiv.className = 'map-status status-in-area';
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'ส่งข้อมูล';
+                    } else {
+                        isUserInArea = false;
+                        mapStatusDiv.textContent = `คุณอยู่นอกพื้นที่กิจกรรม (ระยะห่าง ${distance.toFixed(2)} km)`;
+                        mapStatusDiv.className = 'map-status status-out-area';
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = 'ไม่สามารถส่งข้อมูลได้ (อยู่นอกพื้นที่)';
+                    }
+                },
+                () => {
+                    mapStatusDiv.textContent = "ไม่สามารถเข้าถึงพิกัดได้ กรุณาอนุญาตการเข้าถึงตำแหน่ง";
+                    mapStatusDiv.className = 'map-status status-out-area';
+                    isUserInArea = false;
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'ไม่สามารถส่งข้อมูลได้ (ไม่พบพิกัด)';
+                },
+                { enableHighAccuracy: true } // ขอพิกัดที่แม่นยำขึ้น
+            );
+        }
+
+        // Haversine formula to calculate distance between two points on Earth
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of the Earth in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c; // Distance in km
+        }
+
+        // --- Image Handling ---
+        photoInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                previewImg.src = URL.createObjectURL(file); // Show preview
+                
+                // Convert image to Base64
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    base64Image = e.target.result;
+                };
+                reader.onerror = (error) => {
+                    console.error("Error reading file:", error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'ไม่สามารถอ่านไฟล์รูปภาพได้',
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+
+        // --- Form Submission ---
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Validation
+            if (!isUserInArea) {
+                Swal.fire('อยู่นอกพื้นที่!', 'คุณต้องอยู่ในพื้นที่ที่กำหนดเพื่อส่งข้อมูล', 'warning');
+                return;
+            }
+            if (studentIdInput.value.length !== 8) {
+                Swal.fire('รหัสไม่ถูกต้อง!', 'รหัสนักศึกษาต้องมี 8 หลักเท่านั้น', 'error');
+                return;
+            }
+            if (!form.checkValidity()) {
+                Swal.fire('ข้อมูลไม่ครบ!', 'กรุณากรอกข้อมูลที่จำเป็นให้ครบทุกช่อง', 'error');
+                return;
+            }
+            if (!base64Image) {
+                 Swal.fire('ไม่มีรูปภาพ!', 'กรุณาถ่ายภาพเพื่อยืนยันการเข้าร่วม', 'warning');
+                return;
+            }
+
+            // Show loading alert
+            Swal.fire({
+                title: 'กำลังบันทึกข้อมูล...',
+                text: 'กรุณารอสักครู่',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Prepare data to send
+            const formData = {
+                studentId: document.getElementById('studentId').value,
+                fullName: document.getElementById('fullName').value,
+                faculty: document.getElementById('faculty').value,
+                latitude: userLocation.lat,
+                longitude: userLocation.lon,
+                // Split base64 string to get mime type and data
+                imageData: base64Image.split(',')[1],
+                mimeType: base64Image.split(';')[0].split(':')[1]
+            };
+
+            // Send data to Google Apps Script
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Important for cross-origin requests to GAS from static sites
+                cache: 'no-cache',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData),
+                // redirect: 'follow' // This might be needed depending on the GAS deployment
+            })
+            .then(res => {
+                // Since it's no-cors, we can't read the response. We assume it's successful.
+                Swal.fire({
+                    icon: 'success',
+                    title: 'บันทึกสำเร็จ!',
+                    text: 'ข้อมูลของคุณถูกบันทึกเรียบร้อยแล้ว',
+                });
+                form.reset();
+                previewImg.src = 'https://placehold.co/400x250/FFF8E1/9E9E9E?text=แสดงตัวอย่างภาพ';
+                base64Image = null;
+                checkLocation(); // Re-check location after submission
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถส่งข้อมูลได้ กรุณาลองใหม่อีกครั้ง',
+                });
+            });
+        });
+
+        // --- Initial Call ---
+        window.onload = () => {
+            checkLocation();
+        };
+
+    </script>
+</body>
+</html>
