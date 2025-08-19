@@ -41,7 +41,7 @@
             <h1 class="text-2xl font-bold text-gray-800">English Level Up, Boost Your Confidence</h1>
             <p class="text-gray-600">ระบบบันทึกการเข้าร่วมกิจกรรม</p>
 
-            <!-- [CHANGED] แบนเนอร์เตือน in-app browser -->
+            <!-- แบนเนอร์เตือน in-app browser -->
             <div id="iabBanner" class="hidden mt-3 w-full text-left bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-lg p-3 text-sm">
               ตรวจพบว่าเปิดผ่านแอป (เช่น LINE/Facebook) อาจบล็อกกล้อง/โลเคชัน
               <b>แนะนำให้เปิดด้วย Safari/Chrome</b><br/>
@@ -53,9 +53,8 @@
         <form id="funrunForm" class="p-6 space-y-5">
             
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">เปิด Location และกด "ตรวจสอบพิกัด"</label>
-                <div id="map-status" class="status-checking">ยังไม่ได้ตรวจสอบพิกัด</div> <!-- [CHANGED] -->
-                <!-- [CHANGED] ปุ่มตรวจพิกัดแบบกดเอง -->
+                <label class="block text-sm font-medium text-gray-700 mb-1">สถานะพิกัด</label>
+                <div id="map-status" class="status-checking">ยังไม่ได้ตรวจสอบพิกัด</div>
                 <div class="mt-2">
                   <button type="button" id="checkLocationBtn" class="theme-btn font-bold py-2 px-4 rounded-lg w-full">ตรวจสอบพิกัด</button>
                 </div>
@@ -78,10 +77,9 @@
                     <option>การจัดการ</option><option>การบัญชีและการเงิน</option><option>เทคโนโลยีการเกษตรและอุตสาหกรรมอาหาร</option><option>นิติศาสตร์</option><option>พยาบาลศาสตร์</option><option>แพทยศาสตร์</option><option>เภสัชศาสตร์</option><option>รัฐศาสตร์และรัฐประศาสนศาสตร์</option><option>วิทยาศาสตร์</option><option>วิศวกรรมศาสตร์และเทคโนโลยี</option><option>ศึกษาศาสตร์</option><option>ศิลปศาสตร์</option><option>สถาปัตยกรรมศาสตร์และการออกแบบ</option><option>สหเวชศาสตร์</option><option>สาธารณสุขศาสตร์</option><option>สารสนเทศศาสตร์</option><option>วิทยาลัยทันตแพทยศาสตร์นานาชาติ</option><option>วิทยาลัยนานาชาติ</option><option>วิทยาลัยสัตวแพทยศาสตร์อัครราชกุมารี</option>
                 </select>
             </div>
-        
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">ถ่ายภาพเพื่อยืนยัน</label>
+                <label class="block text-sm font-medium text-gray-700">ถ่ายภาพเซลฟี่ให้ติดภาพป้ายบนเวทีและนักศึกษาเท่านั้น!</label>
                 <div id="camera-container" class="mt-2 hidden">
                     <video id="video" playsinline autoplay></video>
                 </div>
@@ -97,7 +95,8 @@
             </div>
             
             <div class="text-center text-sm text-red-700 p-3 bg-red-50 rounded-lg border border-red-200">
-                <p>เพื่อทราบ! ระบบจะมีการตรวจสอบการเช็คอินซ้ำจากโทรศัพท์เครื่องเดียวกัน การเช็คอินแทนบุคคลอื่นถือเป็นการกระทำผิดวินัยนักศึกษา มีโทษตามประกาศฯของมหาวิทยาลัย</p>
+                <p>เพื่อทราบ ! ระบบจะมีการตรวจสอบการเช็คอินซ้ำจากโทรศัพท์เครื่องเดียวกัน</p>
+                <p>การเช็คอินแทนบุคคลอื่นถือเป็นการกระทำผิดวินัยนักศึกษา</p>
             </div>
 
             <button type="submit" id="submitBtn" class="w-full theme-btn font-bold py-3 px-4 rounded-lg" disabled>
@@ -109,9 +108,9 @@
     <script>
         // CONFIGURATION
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRwj2zuncF6Jp3y3Enmsgh4rBIFpBeasoXhQGaJTqTYaVCJ9GbxtDQ5cJ9_muBx97c/exec";
-        const TARGET_LAT = 8.64610; 
-        const TARGET_LON = 99.89668; 
-        const ALLOWED_RADIUS_KM = 0.2; 
+        const TARGET_LAT = 8.6465; 
+        const TARGET_LON = 99.8961; 
+        const ALLOWED_RADIUS_KM = 1.0; 
 
         // DOM ELEMENTS & STATE
         const form = document.getElementById('funrunForm');
@@ -127,16 +126,16 @@
         const openCameraBtn = document.getElementById('openCameraBtn');
         const takePhotoBtn = document.getElementById('takePhotoBtn');
         const retakeBtn = document.getElementById('retakeBtn');
-        const checkLocationBtn = document.getElementById('checkLocationBtn'); // [CHANGED]
+        const checkLocationBtn = document.getElementById('checkLocationBtn');
 
-        // [CHANGED] in-app browser banner
+        // in-app browser banner
         const iabBanner = document.getElementById('iabBanner');
         const copyLinkBtn = document.getElementById('copyLinkBtn');
         const openExternalBtn = document.getElementById('openExternalBtn');
 
         let userLocation = null, isUserInArea = false, base64Image = null, stream = null;
 
-        // [CHANGED] helper: เปิดส่งได้เฉพาะ “อยู่ในพื้นที่ && มีรูป”
+        // เปิดส่งได้เฉพาะ “อยู่ในพื้นที่ && มีรูป”
         function refreshSubmitEnabled() {
           const hasPhoto = !!base64Image;
           submitBtn.disabled = !(isUserInArea && hasPhoto);
@@ -145,7 +144,7 @@
           else submitBtn.textContent = 'ส่งข้อมูล';
         }
 
-        // [CHANGED] In-app browser detect
+        // In-app browser detect
         (function detectIAB(){
           const ua = navigator.userAgent || '';
           const isInApp = /(FBAN|FBAV|Line\/|Instagram|Twitter)/i.test(ua);
@@ -185,25 +184,24 @@
                         mapStatusDiv.textContent = `คุณอยู่นอกพื้นที่กิจกรรม (ระยะห่าง ${distance.toFixed(2)} km)`; 
                         mapStatusDiv.className = 'status-out-area';
                     }
-                    refreshSubmitEnabled(); // [CHANGED]
+                    refreshSubmitEnabled();
                 },
                 () => { 
                     mapStatusDiv.textContent = "ไม่สามารถเข้าถึงพิกัดได้ กรุณาอนุญาตการเข้าถึงตำแหน่ง"; 
                     mapStatusDiv.className = 'status-out-area'; 
                     isUserInArea = false; 
-                    refreshSubmitEnabled(); // [CHANGED]
+                    refreshSubmitEnabled();
                 },
-                { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 } // [CHANGED]
+                { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
             );
         }
         function calculateDistance(lat1, lon1, lat2, lon2) { const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180; const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2); const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); return R * c; }
 
-        // CAMERA LOGIC
+        // CAMERA LOGIC – บังคับใช้กล้องหน้า
         async function startCamera() {
             if (stream) { stream.getTracks().forEach(track => track.stop()); }
 
             try {
-                // [CHANGED] พยายาม "บังคับกล้องหน้า" ด้วย exact ก่อน แล้ว fallback เป็น 'user'
                 const hard = { video: { facingMode: { exact: 'user' } } };
                 stream = await navigator.mediaDevices.getUserMedia(hard);
             } catch (e) {
@@ -231,7 +229,7 @@
             previewContainer.classList.remove('hidden'); 
             takePhotoBtn.classList.add('hidden'); 
             retakeBtn.classList.remove('hidden');
-            refreshSubmitEnabled(); // [CHANGED] ให้ส่งได้เมื่อมีรูป + อยู่ในพื้นที่
+            refreshSubmitEnabled();
         });
 
         // IP ADDRESS FETCHER
@@ -246,22 +244,25 @@
             if (!isUserInArea) { Swal.fire('อยู่นอกพื้นที่!', 'คุณต้องอยู่ในพื้นที่ที่กำหนดเพื่อส่งข้อมูล', 'warning'); return; }
             if (studentIdInput.value.length !== 8) { Swal.fire('รหัสไม่ถูกต้อง!', 'รหัสนักศึกษาต้องมี 8 หลักเท่านั้น', 'error'); return; }
             if (!base64Image) { Swal.fire('ไม่มีรูปภาพ!', 'กรุณาถ่ายภาพเพื่อยืนยันการเข้าร่วม', 'warning'); return; }
-            if (!document.querySelector('input[name="activityPoints"]:checked')) { Swal.fire('ข้อมูลไม่ครบ!', 'กรุณาเลือก "คะแนนความดีที่ต้องการบันทึก"', 'error'); return; }
             if (!form.checkValidity()) { Swal.fire('ข้อมูลไม่ครบ!', 'กรุณากรอกข้อมูลที่จำเป็นให้ครบทุกช่อง', 'error'); return; }
 
             Swal.fire({ title: 'กำลังบันทึกข้อมูล...', text: 'กรุณารอสักครู่', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
 
             const userIpAddress = await getIpAddress();
-            const selectedPoints = document.querySelector('input[name="activityPoints"]:checked').value;
 
             const formData = {
-                studentId: studentIdInput.value, fullName: fullNameInput.value, faculty: document.getElementById('faculty').value,
-                activityPoints: selectedPoints, latitude: userLocation?.lat, longitude: userLocation?.lon,
-                imageData: (base64Image || '').split(',')[1], mimeType: (base64Image || 'data:image/jpeg').split(';')[0].split(':')[1], ipAddress: userIpAddress
+                studentId: studentIdInput.value,
+                fullName: fullNameInput.value,
+                faculty: document.getElementById('faculty').value,
+                latitude: userLocation?.lat,
+                longitude: userLocation?.lon,
+                imageData: (base64Image || '').split(',')[1],
+                mimeType: (base64Image || 'data:image/jpeg').split(';')[0].split(':')[1],
+                ipAddress: userIpAddress
             };
 
             fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) })
-            .then(res => {
+            .then(() => {
                 const now = new Date();
                 const timeString = now.toTimeString().split(' ')[0];
                 
@@ -287,7 +288,6 @@
                 base64Image = null;
                 previewImg.src = 'https://placehold.co/400x300/FFF8E1/9E9E9E?text=รอเปิดกล้อง';
                 retakeBtn.classList.add('hidden'); openCameraBtn.classList.remove('hidden'); takePhotoBtn.classList.add('hidden');
-                // [CHANGED] รีเซ็ตสถานะและปุ่มส่ง
                 userLocation = null; isUserInArea = false;
                 mapStatusDiv.textContent = 'ยังไม่ได้ตรวจสอบพิกัด';
                 mapStatusDiv.className = 'status-checking';
@@ -299,10 +299,10 @@
             });
         });
 
-        // [CHANGED] ให้ผู้ใช้กดปุ่มเพื่อขอพิกัด (ไม่ขออัตโนมัติ)
+        // ให้ผู้ใช้กดปุ่มเพื่อขอพิกัด (ไม่ขออัตโนมัติ)
         document.getElementById('checkLocationBtn').addEventListener('click', checkLocation);
 
-        // *** ยกเลิกการขอสิทธิ์อัตโนมัติบน onload ***
+        // ไม่เรียก geolocation/camera อัตโนมัติบน onload
         // window.onload = () => { checkLocation(); };
     </script>
 </body>
