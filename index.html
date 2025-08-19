@@ -54,7 +54,7 @@
             
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">สถานะพิกัด</label>
-                <div id="map-status" class="status-checking">ยังไม่ได้ตรวจสอบพิกัด</div> <!-- [CHANGED] ข้อความเริ่มต้น -->
+                <div id="map-status" class="status-checking">ยังไม่ได้ตรวจสอบพิกัด</div> <!-- [CHANGED] -->
                 <!-- [CHANGED] ปุ่มตรวจพิกัดแบบกดเอง -->
                 <div class="mt-2">
                   <button type="button" id="checkLocationBtn" class="theme-btn font-bold py-2 px-4 rounded-lg w-full">ตรวจสอบพิกัด</button>
@@ -179,7 +179,7 @@
           }
         })();
 
-        // GEOLOCATION
+        // GEOLOCATION (เรียกเมื่อผู้ใช้กดปุ่มเท่านั้น)
         function checkLocation() {
             if (!navigator.geolocation) { 
               mapStatusDiv.textContent = "เบราว์เซอร์ของคุณไม่รองรับ Geolocation"; 
@@ -220,15 +220,22 @@
         // CAMERA LOGIC
         async function startCamera() {
             if (stream) { stream.getTracks().forEach(track => track.stop()); }
+
             try {
-                const constraints = { video: { facingMode: { ideal: 'environment' } } }; // [CHANGED]
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = stream;
-                cameraContainer.classList.remove('hidden'); previewContainer.classList.add('hidden'); openCameraBtn.classList.add('hidden'); takePhotoBtn.classList.remove('hidden'); retakeBtn.classList.add('hidden');
-            } catch (err) { 
-                console.error("Camera Error:", err); 
-                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบการอนุญาตใช้งานกล้องในเบราว์เซอร์', 'error'); 
+                // [CHANGED] พยายาม "บังคับกล้องหน้า" ด้วย exact ก่อน แล้ว fallback เป็น 'user'
+                const hard = { video: { facingMode: { exact: 'user' } } };
+                stream = await navigator.mediaDevices.getUserMedia(hard);
+            } catch (e) {
+                const soft = { video: { facingMode: 'user' } };
+                stream = await navigator.mediaDevices.getUserMedia(soft);
             }
+
+            video.srcObject = stream;
+            cameraContainer.classList.remove('hidden'); 
+            previewContainer.classList.add('hidden'); 
+            openCameraBtn.classList.add('hidden'); 
+            takePhotoBtn.classList.remove('hidden'); 
+            retakeBtn.classList.add('hidden');
         }
         function stopCamera() { if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; } }
         openCameraBtn.addEventListener('click', startCamera);
@@ -239,8 +246,11 @@
             base64Image = canvas.toDataURL('image/jpeg');
             previewImg.src = base64Image;
             stopCamera();
-            cameraContainer.classList.add('hidden'); previewContainer.classList.remove('hidden'); takePhotoBtn.classList.add('hidden'); retakeBtn.classList.remove('hidden');
-            refreshSubmitEnabled(); // [CHANGED] มีรูปแล้ว คำนวณปุ่มส่งใหม่
+            cameraContainer.classList.add('hidden'); 
+            previewContainer.classList.remove('hidden'); 
+            takePhotoBtn.classList.add('hidden'); 
+            retakeBtn.classList.remove('hidden');
+            refreshSubmitEnabled(); // [CHANGED] ให้ส่งได้เมื่อมีรูป + อยู่ในพื้นที่
         });
 
         // IP ADDRESS FETCHER
@@ -308,12 +318,11 @@
             });
         });
 
-        // [CHANGED] ย้ายมาให้กดเอง ไม่เรียกอัตโนมัติ
+        // [CHANGED] ให้ผู้ใช้กดปุ่มเพื่อขอพิกัด (ไม่ขออัตโนมัติ)
         document.getElementById('checkLocationBtn').addEventListener('click', checkLocation);
 
-        // *** ยกเลิกการขอสิทธิ์อัตโนมัติ ***
-        // window.onload = () => { checkLocation(); }; // ลบทิ้ง/คอมเมนต์
-
+        // *** ยกเลิกการขอสิทธิ์อัตโนมัติบน onload ***
+        // window.onload = () => { checkLocation(); };
     </script>
 </body>
 </html>
