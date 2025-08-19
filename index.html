@@ -30,12 +30,7 @@
         #camera-container, #preview-container { position: relative; background-color: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 12; display: flex; align-items: center; justify-content: center; }
         #video, #preview { width: 100%; height: 100%; object-fit: cover; }
         .hidden { display: none; }
-        /* Style for the link in SweetAlert */
-        .swal2-html-container a {
-            color: #1a73e8;
-            text-decoration: underline;
-            font-weight: bold;
-        }
+        .swal2-html-container a { color: #1a73e8; text-decoration: underline; font-weight: bold; }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
@@ -45,13 +40,25 @@
             <img src="https://www.wu.ac.th/uploads/logoWU_1631668089.png" alt="WU Logo" class="h-16 mb-2">
             <h1 class="text-2xl font-bold text-gray-800">WU Happy Funrun</h1>
             <p class="text-gray-600">ระบบบันทึกการเข้าร่วมกิจกรรม</p>
+
+            <!-- [CHANGED] แบนเนอร์เตือน in-app browser -->
+            <div id="iabBanner" class="hidden mt-3 w-full text-left bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-lg p-3 text-sm">
+              ตรวจพบว่าเปิดผ่านแอป (เช่น LINE/Facebook) อาจบล็อกกล้อง/โลเคชัน
+              <b>แนะนำให้เปิดด้วย Safari/Chrome</b><br/>
+              <button id="copyLinkBtn" class="mt-2 theme-btn px-3 py-1 rounded">คัดลอกลิงก์</button>
+              <a id="openExternalBtn" class="mt-2 inline-block theme-btn-secondary px-3 py-1 rounded" href="#" rel="noopener">เปิดด้วยเบราว์เซอร์</a>
+            </div>
         </div>
 
         <form id="funrunForm" class="p-6 space-y-5">
             
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">สถานะพิกัด</label>
-                <div id="map-status" class="status-checking">กำลังตรวจสอบพิกัด...</div>
+                <div id="map-status" class="status-checking">ยังไม่ได้ตรวจสอบพิกัด</div> <!-- [CHANGED] ข้อความเริ่มต้น -->
+                <!-- [CHANGED] ปุ่มตรวจพิกัดแบบกดเอง -->
+                <div class="mt-2">
+                  <button type="button" id="checkLocationBtn" class="theme-btn font-bold py-2 px-4 rounded-lg w-full">ตรวจสอบพิกัด</button>
+                </div>
             </div>
 
             <div>
@@ -139,23 +146,73 @@
         const openCameraBtn = document.getElementById('openCameraBtn');
         const takePhotoBtn = document.getElementById('takePhotoBtn');
         const retakeBtn = document.getElementById('retakeBtn');
+        const checkLocationBtn = document.getElementById('checkLocationBtn'); // [CHANGED]
+
+        // [CHANGED] in-app browser banner
+        const iabBanner = document.getElementById('iabBanner');
+        const copyLinkBtn = document.getElementById('copyLinkBtn');
+        const openExternalBtn = document.getElementById('openExternalBtn');
+
         let userLocation = null, isUserInArea = false, base64Image = null, stream = null;
+
+        // [CHANGED] helper: เปิดส่งได้เฉพาะ “อยู่ในพื้นที่ && มีรูป”
+        function refreshSubmitEnabled() {
+          const hasPhoto = !!base64Image;
+          submitBtn.disabled = !(isUserInArea && hasPhoto);
+          if (!isUserInArea) submitBtn.textContent = 'ไม่สามารถส่งข้อมูลได้ (ยังไม่ยืนยันพิกัด)';
+          else if (!hasPhoto) submitBtn.textContent = 'ไม่สามารถส่งข้อมูลได้ (ยังไม่มีรูป)';
+          else submitBtn.textContent = 'ส่งข้อมูล';
+        }
+
+        // [CHANGED] In-app browser detect
+        (function detectIAB(){
+          const ua = navigator.userAgent || '';
+          const isInApp = /(FBAN|FBAV|Line\/|Instagram|Twitter)/i.test(ua);
+          if (isInApp) {
+            iabBanner.classList.remove('hidden');
+            copyLinkBtn.onclick = async () => {
+              try { await navigator.clipboard.writeText(location.href);
+                Swal.fire({icon:'success', title:'คัดลอกลิงก์แล้ว', timer:1200, showConfirmButton:false});
+              } catch { Swal.fire({icon:'info', title:'คัดลอกลิงก์ไม่สำเร็จ', text:'โปรดคัดลอกจากแถบที่อยู่เอง'}); }
+            };
+            openExternalBtn.href = location.href;
+          }
+        })();
 
         // GEOLOCATION
         function checkLocation() {
-            if (!navigator.geolocation) { mapStatusDiv.textContent = "เบราว์เซอร์ของคุณไม่รองรับ Geolocation"; mapStatusDiv.className = 'map-status status-out-area'; return; }
+            if (!navigator.geolocation) { 
+              mapStatusDiv.textContent = "เบราว์เซอร์ของคุณไม่รองรับ Geolocation"; 
+              mapStatusDiv.className = 'status-out-area'; 
+              isUserInArea = false; 
+              refreshSubmitEnabled();
+              return; 
+            }
+            mapStatusDiv.textContent = "กำลังตรวจสอบพิกัด..."; 
+            mapStatusDiv.className = 'status-checking';
+
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     userLocation = { lat: position.coords.latitude, lon: position.coords.longitude };
                     const distance = calculateDistance(userLocation.lat, userLocation.lon, TARGET_LAT, TARGET_LON);
                     if (distance <= ALLOWED_RADIUS_KM) {
-                        isUserInArea = true; mapStatusDiv.textContent = `คุณอยู่ในพื้นที่กิจกรรม (ระยะห่าง ${distance.toFixed(2)} km)`; mapStatusDiv.className = 'map-status status-in-area'; submitBtn.disabled = false; submitBtn.textContent = 'ส่งข้อมูล';
+                        isUserInArea = true; 
+                        mapStatusDiv.textContent = `คุณอยู่ในพื้นที่กิจกรรม (ระยะห่าง ${distance.toFixed(2)} km)`; 
+                        mapStatusDiv.className = 'status-in-area';
                     } else {
-                        isUserInArea = false; mapStatusDiv.textContent = `คุณอยู่นอกพื้นที่กิจกรรม (ระยะห่าง ${distance.toFixed(2)} km)`; mapStatusDiv.className = 'map-status status-out-area'; submitBtn.disabled = true; submitBtn.textContent = 'ไม่สามารถส่งข้อมูลได้ (อยู่นอกพื้นที่)';
+                        isUserInArea = false; 
+                        mapStatusDiv.textContent = `คุณอยู่นอกพื้นที่กิจกรรม (ระยะห่าง ${distance.toFixed(2)} km)`; 
+                        mapStatusDiv.className = 'status-out-area';
                     }
+                    refreshSubmitEnabled(); // [CHANGED]
                 },
-                () => { mapStatusDiv.textContent = "ไม่สามารถเข้าถึงพิกัดได้ กรุณาอนุญาตการเข้าถึงตำแหน่ง"; mapStatusDiv.className = 'map-status status-out-area'; isUserInArea = false; submitBtn.disabled = true; },
-                { enableHighAccuracy: true }
+                () => { 
+                    mapStatusDiv.textContent = "ไม่สามารถเข้าถึงพิกัดได้ กรุณาอนุญาตการเข้าถึงตำแหน่ง"; 
+                    mapStatusDiv.className = 'status-out-area'; 
+                    isUserInArea = false; 
+                    refreshSubmitEnabled(); // [CHANGED]
+                },
+                { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 } // [CHANGED]
             );
         }
         function calculateDistance(lat1, lon1, lat2, lon2) { const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180; const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2); const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); return R * c; }
@@ -164,11 +221,14 @@
         async function startCamera() {
             if (stream) { stream.getTracks().forEach(track => track.stop()); }
             try {
-                const constraints = { video: { facingMode: 'user' } };
+                const constraints = { video: { facingMode: { ideal: 'environment' } } }; // [CHANGED]
                 stream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = stream;
                 cameraContainer.classList.remove('hidden'); previewContainer.classList.add('hidden'); openCameraBtn.classList.add('hidden'); takePhotoBtn.classList.remove('hidden'); retakeBtn.classList.add('hidden');
-            } catch (err) { console.error("Camera Error:", err); Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบการอนุญาตใช้งานกล้องในเบราว์เซอร์', 'error'); }
+            } catch (err) { 
+                console.error("Camera Error:", err); 
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถเปิดกล้องได้ กรุณาตรวจสอบการอนุญาตใช้งานกล้องในเบราว์เซอร์', 'error'); 
+            }
         }
         function stopCamera() { if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; } }
         openCameraBtn.addEventListener('click', startCamera);
@@ -180,6 +240,7 @@
             previewImg.src = base64Image;
             stopCamera();
             cameraContainer.classList.add('hidden'); previewContainer.classList.remove('hidden'); takePhotoBtn.classList.add('hidden'); retakeBtn.classList.remove('hidden');
+            refreshSubmitEnabled(); // [CHANGED] มีรูปแล้ว คำนวณปุ่มส่งใหม่
         });
 
         // IP ADDRESS FETCHER
@@ -204,15 +265,14 @@
 
             const formData = {
                 studentId: studentIdInput.value, fullName: fullNameInput.value, faculty: document.getElementById('faculty').value,
-                activityPoints: selectedPoints, latitude: userLocation.lat, longitude: userLocation.lon,
-                imageData: base64Image.split(',')[1], mimeType: base64Image.split(';')[0].split(':')[1], ipAddress: userIpAddress
+                activityPoints: selectedPoints, latitude: userLocation?.lat, longitude: userLocation?.lon,
+                imageData: (base64Image || '').split(',')[1], mimeType: (base64Image || 'data:image/jpeg').split(';')[0].split(':')[1], ipAddress: userIpAddress
             };
 
             fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) })
             .then(res => {
-                // *** MODIFIED PART ***
                 const now = new Date();
-                const timeString = now.toTimeString().split(' ')[0]; // Gets HH:MM:SS
+                const timeString = now.toTimeString().split(' ')[0];
                 
                 Swal.fire({
                     icon: 'success',
@@ -236,7 +296,11 @@
                 base64Image = null;
                 previewImg.src = 'https://placehold.co/400x300/FFF8E1/9E9E9E?text=รอเปิดกล้อง';
                 retakeBtn.classList.add('hidden'); openCameraBtn.classList.remove('hidden'); takePhotoBtn.classList.add('hidden');
-                checkLocation();
+                // [CHANGED] รีเซ็ตสถานะและปุ่มส่ง
+                userLocation = null; isUserInArea = false;
+                mapStatusDiv.textContent = 'ยังไม่ได้ตรวจสอบพิกัด';
+                mapStatusDiv.className = 'status-checking';
+                refreshSubmitEnabled();
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -244,8 +308,12 @@
             });
         });
 
-        // INITIAL CALL
-        window.onload = () => { checkLocation(); };
+        // [CHANGED] ย้ายมาให้กดเอง ไม่เรียกอัตโนมัติ
+        document.getElementById('checkLocationBtn').addEventListener('click', checkLocation);
+
+        // *** ยกเลิกการขอสิทธิ์อัตโนมัติ ***
+        // window.onload = () => { checkLocation(); }; // ลบทิ้ง/คอมเมนต์
+
     </script>
 </body>
 </html>
